@@ -328,6 +328,7 @@
                 function createCaptureHex() {
                     const hex = document.createElement("div");
                     hex.className = "hex capture-hex";
+                    hex.classList.add("control-hex");
                     hex.style.width = hexWidth + "px";
                     hex.style.height = Math.round(hexWidth * 1.15) + "px";
                     hex.style.marginRight = gap_right + "px";
@@ -345,41 +346,38 @@
                     `;
                     hex.addEventListener("click", async () => {
                         const container = document.getElementById("iconContainer");
-                        const captureBtn = hex;
+                        const controls = document.querySelectorAll(".control-hex");
                         try {
                             // hide capture button
-                            captureBtn.style.display = "none";
+                            console.log(controls)
+                            controls.forEach(el => el.style.visibility = "hidden");
                             const dataUrl = await domtoimage.toPng(container);
                             const link = document.createElement("a");
                             link.download = "grand_chase_flex_chart.png";
                             link.href = dataUrl;
                             link.click();
-
                         } catch (err) {
                             console.error("Capture failed:", err);
 
                         } finally {
-                            // always restore button even if error happens
-                            captureBtn.style.display = "flex";
+                            controls.forEach(el => el.style.visibility = "visible");
                         }
                     });
                     return hex;
                 }
                 function createSaveHex() {
                     const hex = document.createElement("div");
-
                     hex.className = "hex save-hex";
+                    hex.classList.add("control-hex");
                     hex.style.width = hexWidth + "px";
                     hex.style.height = Math.round(hexWidth * 1.15) + "px";
                     hex.style.marginRight = gap_right + "px";
-
                     hex.style.display = "flex";
                     hex.style.alignItems = "center";
                     hex.style.justifyContent = "center";
                     hex.style.background = "#222";
                     hex.style.cursor = "pointer";
                     hex.style.userSelect = "none";
-
                     hex.innerHTML = `
                         <div style="font-size:12px; text-align:center;">
                             💾<br>Save
@@ -400,6 +398,7 @@
                 function createLoadHex() {
                     const hex = document.createElement("div");
                     hex.className = "hex load-hex";
+                    hex.classList.add("control-hex");
                     hex.style.width = hexWidth + "px";
                     hex.style.height = Math.round(hexWidth * 1.15) + "px";
                     hex.style.marginRight = gap_right + "px";
@@ -424,6 +423,7 @@
                 function createClearHex() {
                     const hex = document.createElement("div");
                     hex.className = "hex clear-hex";
+                    hex.classList.add("control-hex");
                     hex.style.width = hexWidth + "px";
                     hex.style.height = Math.round(hexWidth * 1.15) + "px";
                     hex.style.marginRight = gap_right + "px";
