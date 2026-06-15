@@ -192,7 +192,13 @@
                         Find me in <a href="https://discord.gg/grandchase">Grand Chase Dimensional Chasers Discord</a><br>
                     </p>
                     <p>
-                        Version: 1.0
+                        Version: 1.1
+                    </p>
+                    <p>
+                        <ul>
+                            <li>Added Cindy SR Descent Level</li>
+                            <li>Change Save/Load System once more</li>
+                        </ul>
                     </p>
                     <p>
                         Disclaimer: Grand Chase and all related assets belong to their respective owners.
@@ -201,36 +207,61 @@
             </div>
         </div>
         <script>
+            const SAVE_KEYS = [...new Set(
+                Object.keys(imgs)
+                    .map(k => k.replace(/-[01]$/, ""))
+            )].sort();
+
+            const SAVE_INDEX = {};
+            SAVE_KEYS.forEach((key, i) => {
+                SAVE_INDEX[key] = i;
+            });
             let summaryHex = null;
             let totalIcons = 0;
             function generateSaveCode() {
-                const icons = document.querySelectorAll(".icon");
                 const bytes = [];
-                for (let i = 0; i < icons.length; i += 2) {
-                    const a = parseInt(icons[i].dataset.count) + 2;
-                    const b = i + 1 < icons.length
-                        ? parseInt(icons[i + 1].dataset.count) + 2
-                        : 0;
-                    bytes.push((a << 4) | b);
-                }
-                return btoa(String.fromCharCode(...bytes));
+                document.querySelectorAll(".icon").forEach(icon => {
+                    const count = parseInt(icon.dataset.count);
+                    if (count === -2) return;
+                    bytes.push(
+                        SAVE_INDEX[icon.dataset.base],
+                        count + 2
+                    );
+                });
+                return btoa(
+                    String.fromCharCode(...bytes)
+                );
             }
             function loadSaveCode(code) {
-                const binary = atob(code);
-                const icons = document.querySelectorAll(".icon");
-                let index = 0;
-                for (const ch of binary) {
-                    const byte = ch.charCodeAt(0);
-                    const a = ((byte >> 4) & 0xF) - 2;
-                    const b = (byte & 0xF) - 2;
-                    if (icons[index]) {
-                        applyState(icons[index], a);
-                        index++;
+                try {
+                    const binary = atob(code);
+                    const icons = document.querySelectorAll(".icon");
+                    icons.forEach(icon => {
+                        applyState(icon, -2);
+                    });
+                    const iconMap = {};
+                    icons.forEach(icon => {
+                        iconMap[icon.dataset.base] = icon;
+                    });
+                    for (let i = 0; i < binary.length; i += 2) {
+                        const index =
+                            binary.charCodeAt(i);
+                        const state =
+                            binary.charCodeAt(i + 1);
+                        const base = SAVE_KEYS[index];
+                        if (!base) continue;
+                        const icon = iconMap[base];
+                        if (!icon) continue;
+                        applyState(
+                            icon,
+                            state - 2
+                        );
                     }
-                    if (icons[index]) {
-                        applyState(icons[index], b);
-                        index++;
-                    }
+                    const activeIcons =
+                        document.querySelectorAll(".icon.active").length;
+                    summaryHex?.update(activeIcons, totalIcons);
+                } catch (err) {
+                    console.error("Invalid save code", err);
                 }
             }
             function updateIconImage(img) {
