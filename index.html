@@ -176,60 +176,61 @@
                 </div>
             </div>
         </div>
+        <div id="aboutModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>About</h2>
+                    <button id="closeAbout">✖</button>
+                </div>
+                <div class="modal-body">
+                    <p><b>Grand Chase Flex Chart</b></p>
+                    <p>
+                        Track your character collection and Descent progress.
+                    </p>
+                    <p>
+                        Created by <b>Lily (Aoi Sora/chasw.)</b><br>
+                        Find me in <a href="https://discord.gg/grandchase">Grand Chase Dimensional Chasers Discord</a><br>
+                    </p>
+                    <p>
+                        Version: 1.0
+                    </p>
+                    <p>
+                        Disclaimer: Grand Chase and all related assets belong to their respective owners.
+                    </p>
+                </div>
+            </div>
+        </div>
         <script>
             let summaryHex = null;
             let totalIcons = 0;
             function generateSaveCode() {
                 const icons = document.querySelectorAll(".icon");
-                const changes = [];
-                icons.forEach((icon, index) => {
-                    const count = parseInt(icon.dataset.count);
-                    if (count === -2) return;
-                    changes.push(`${index}:${count}`);
-                });
-                return btoa(changes.join(","));
+                const bytes = [];
+                for (let i = 0; i < icons.length; i += 2) {
+                    const a = parseInt(icons[i].dataset.count) + 2;
+                    const b = i + 1 < icons.length
+                        ? parseInt(icons[i + 1].dataset.count) + 2
+                        : 0;
+                    bytes.push((a << 4) | b);
+                }
+                return btoa(String.fromCharCode(...bytes));
             }
             function loadSaveCode(code) {
-                try {
-                    const decoded = atob(code);
-                        const changes = decoded
-                            .split(",")
-                            .filter(Boolean)
-                            .map(pair => {
-                                const [index, value] = pair.split(":");
-                                return [parseInt(index), parseInt(value)];
-                            });
-                        const icons = document.querySelectorAll(".icon");
-                        icons.forEach(icon => {
-                            icon.dataset.count = -2;
-                            icon.classList.remove("active");
-                            updateIconImage(icon);
-                            const counter =
-                                icon.parentElement.querySelector(".counter");
-                            counter.style.display = "none";
-                            counter.textContent = "";
-                        });
-                        changes.forEach(([index, value]) => {
-                            const icon = icons[index];
-                            if (!icon) return;
-                            icon.dataset.count = value;
-                            const counter =
-                                icon.parentElement.querySelector(".counter");
-                            if (value >= 0) {
-                                counter.style.display = "block";
-                                counter.textContent = value === 10 ? "X" : value;
-                                icon.classList.add("active");
-                            } else {
-                                icon.classList.toggle("active", value === -1);
-                                counter.style.display = "none";
-                            }
-                            updateIconImage(icon);
-                        });
-                        const activeIcons =
-                            document.querySelectorAll(".icon.active").length;
-                        summaryHex?.update(activeIcons, totalIcons);
-                    } catch (err) {
-                        console.error("Invalid save code", err);
+                const binary = atob(code);
+                const icons = document.querySelectorAll(".icon");
+                let index = 0;
+                for (const ch of binary) {
+                    const byte = ch.charCodeAt(0);
+                    const a = ((byte >> 4) & 0xF) - 2;
+                    const b = (byte & 0xF) - 2;
+                    if (icons[index]) {
+                        applyState(icons[index], a);
+                        index++;
+                    }
+                    if (icons[index]) {
+                        applyState(icons[index], b);
+                        index++;
+                    }
                 }
             }
             function updateIconImage(img) {
@@ -238,6 +239,20 @@
                 img.src = count >= 0
                     ? imgs[`${base}-1`]
                     : imgs[`${base}-0`];
+            }
+            function applyState(icon, value) {
+                icon.dataset.count = value;
+                const counter =
+                    icon.parentElement.querySelector(".counter");
+                if (value >= 0) {
+                    counter.style.display = "block";
+                    counter.textContent = value === 10 ? "X" : value;
+                    icon.classList.add("active");
+                } else {
+                    counter.style.display = "none";
+                    icon.classList.toggle("active", value === -1);
+                }
+                updateIconImage(icon);
             }
             function buildHoneycomb() {
                 const container = document.getElementById("iconContainer");
@@ -534,15 +549,41 @@
                     hex.style.background = "#222";
                     hex.style.cursor = "pointer";
                     hex.style.userSelect = "none";
-
                     hex.innerHTML = `
                         <div style="font-size:12px; text-align:center;">
                             ❓<br>Help
                         </div>
                     `;
-
                     hex.addEventListener("click", () => {
                         document.getElementById("helpModal").classList.remove("hidden");
+                    });
+                    return hex;
+                }
+                function createAboutHex() {
+                    const hex = document.createElement("div");
+
+                    hex.classList.add("hex", "about-hex", "control-hex");
+
+                    hex.style.width = hexWidth + "px";
+                    hex.style.height = Math.round(hexWidth * 1.15) + "px";
+                    hex.style.marginRight = gap_right + "px";
+                    hex.style.display = "flex";
+                    hex.style.alignItems = "center";
+                    hex.style.justifyContent = "center";
+                    hex.style.background = "#222";
+                    hex.style.cursor = "pointer";
+                    hex.style.userSelect = "none";
+
+                    hex.innerHTML = `
+                        <div style="font-size:12px; text-align:center;">
+                            ℹ️<br>About
+                        </div>
+                    `;
+
+                    hex.addEventListener("click", () => {
+                        document
+                            .getElementById("aboutModal")
+                            .classList.remove("hidden");
                     });
 
                     return hex;
@@ -552,7 +593,8 @@
                 const captureHex = createCaptureHex();
                 const clearHex = createClearHex();
                 const helpHex = createHelpHex();
-                [saveHex, loadHex, clearHex, helpHex, captureHex].forEach(hex => {
+                const aboutHex = createAboutHex();
+                [saveHex, loadHex, clearHex, helpHex, aboutHex, captureHex].forEach(hex => {
                     let lastRow = container.lastElementChild;
                     if (lastRow && lastRow.children.length < oddCount) {
                         lastRow.appendChild(hex);
@@ -591,6 +633,15 @@
             });
             document.getElementById("helpModal").addEventListener("click", (e) => {
                 if (e.target.id === "helpModal") {
+                    e.target.classList.add("hidden");
+                }
+            });
+            document.getElementById("closeAbout").addEventListener("click", () => {
+                document.getElementById("aboutModal").classList.add("hidden");
+            });
+
+            document.getElementById("aboutModal").addEventListener("click", (e) => {
+                if (e.target.id === "aboutModal") {
                     e.target.classList.add("hidden");
                 }
             });
