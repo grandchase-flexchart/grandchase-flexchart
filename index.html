@@ -7,147 +7,8 @@
 		<link rel="icon" type="image/svg+xml" href="favicon.svg">
 		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 		<script src="static/js/dom-to-image.js"></script>
+        <link rel="stylesheet" href="static/css/style.css">
     </head>
-    <style>
-    body {
-        background: #111;
-        color: white;
-        margin: 0;
-        padding: 0;
-        font-family: Arial, Helvetica, sans-serif;
-    }
-    #iconContainer {
-        display: flex;
-        flex-wrap: wrap;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: flex-start;
-        width: 100%;
-        max-width: 100vw;
-        box-sizing: border-box;
-        padding: 10px;
-    }
-    .hex, .helper{
-        width: 100%;
-        height: 100%;
-        position: relative;
-        background: #333;
-        overflow: hidden;
-        clip-path: polygon(
-            50% 0%,
-            100% 25%,
-            100% 75%,
-            50% 100%,
-            0% 75%,
-            0% 25%
-        );
-    }
-    .hex.summary {
-        pointer-events: none;
-        background: white;
-        opacity: 1;
-        font-size: 32px;
-        font-weight: bolder;
-        color: black;
-    }
-    .counter {
-        position: absolute;
-        top: 15%;
-        right: 20%;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding-left: 6px;
-        margin: 0;
-        font-size: 16px;
-        font-weight: bolder;
-        line-height: 1.5;
-        color: black;
-        background: white;
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        text-shadow: none;
-        pointer-events: none;
-        box-sizing: border-box;
-    /* fixes optical digit shift */
-    text-indent: 0;
-    letter-spacing: 0;
-    }
-    .row {
-        display: flex;
-    }
-
-    .row + .row {
-        margin-top: -28px;
-    }
-
-    .row.even {
-        margin-left: 68px;
-    }
-    .icon, .helper{
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-
-        clip-path: polygon(
-            50% 0%,
-            100% 25%,
-            100% 75%,
-            50% 100%,
-            0% 75%,
-            0% 25%
-        );
-        opacity: 0.2;
-        -webkit-user-drag: none;
-        user-select: none;
-    }
-    .icon.active, .helper.active{
-        opacity: 1;
-    }
-    .modal {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-    }
-    .modal.hidden {
-        display: none;
-    }
-    .modal-content {
-        background: #222;
-        color: white;
-        width: min(500px, 90vw);
-        border-radius: 12px;
-        padding: 16px;
-        box-sizing: border-box;
-    }
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        justify-content: center;
-    }
-    .modal-header button {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 20px;
-        cursor: pointer;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .modal-body {
-        margin-top: 10px;
-        font-size: 14px;
-        line-height: 1.5;
-    }
-    </style>
     <body>
         <script src="icons.js"></script>
         <div id="iconContainer"></div>
@@ -157,7 +18,6 @@
                     <h2>Help / About</h2>
                     <button id="closeHelp">✖</button>
                 </div>
-
                 <div class="modal-body">
                     <p><b>Grand Chase Flex Chart Help</b></p>
                     <p>Click icons to cycle states:</p>
@@ -206,488 +66,507 @@
                 </div>
             </div>
         </div>
+        <div id="navBar" class="unCapturable">
+            <div class="nav-row">
+                <div class="nav-hex" id="toggleSidebar">></div>
+            </div>
+            <div class="nav-row offset">
+                <div class="nav-hex state-0" id="stateBtn" onclick="cycleStateControl()">⊘</div>
+            </div>
+            <div class="nav-row">
+                <div class="nav-hex" id="transBtn" onclick="transModeControl()">T</div>
+            </div>
+            <div class="nav-row offset">
+                <div class="nav-hex" id="fsiBtn" onclick="fsiModeControl()">FSI</div>
+            </div>
+            <div class="nav-row">
+                <div class="nav-hex" id="saveBtn" onclick="saveProgress()">💾</div>
+            </div>
+            <div class="nav-row offset">
+                <div class="nav-hex" id="loadBtn" onclick="loadProgress()">📂</div>
+            </div>
+            <div class="nav-row">
+                <div class="nav-hex" id="clearBtn" onclick="clearProgress()">🧹</div>
+            </div>
+            <div class="nav-row offset">
+                <div class="nav-hex" id="captureBtn" onclick="captureProgress()">📷</div>
+            </div>
+        </div>
         <script>
-            const SAVE_KEYS = [...new Set(
-                Object.keys(imgs)
-                    .map(k => k.replace(/-[01]$/, ""))
-            )].sort();
-
-            const SAVE_INDEX = {};
-            SAVE_KEYS.forEach((key, i) => {
-                SAVE_INDEX[key] = i;
-            });
-            let summaryHex = null;
-            let totalIcons = 0;
-            function generateSaveCode() {
-                const bytes = [];
-                document.querySelectorAll(".icon").forEach(icon => {
-                    const count = parseInt(icon.dataset.count);
-                    if (count === -2) return;
-                    bytes.push(
-                        SAVE_INDEX[icon.dataset.base],
-                        count + 2
-                    );
-                });
-                return btoa(
-                    String.fromCharCode(...bytes)
+            let stateControl = 0;
+            let transControl = 0;
+            let fsiControl = 0;
+            const stateBtn = document.getElementById("stateBtn");
+            function cycleStateControl() {
+                if (transControl === 1) {
+                    transControl = 0;
+                    transBtn.classList.remove("active");
+                }
+                if (fsiControl === 1) {
+                    fsiControl = 0;
+                    fsiBtn.classList.remove("active");
+                }
+                stateControl++;
+                if (stateControl > 4) {
+                    stateControl = 0;
+                }
+                updateStateControl();
+            }
+            const transBtn = document.getElementById("transBtn");
+            function transModeControl() {
+                if (fsiControl === 1) {
+                    fsiControl = 0;
+                    fsiBtn.classList.remove("active");
+                }
+                transControl++;
+                if (transControl > 1) {
+                    transControl = 0;
+                    transBtn.classList.remove("active");
+                }
+                else {
+                    transBtn.classList.add("active");
+                    stateControl = 0;
+                    updateStateControl();
+                }
+            }
+            const fsiBtn = document.getElementById("fsiBtn");
+            function fsiModeControl() {
+                fsiControl++;
+                if (fsiControl > 1) {
+                    fsiControl = 0;
+                    fsiBtn.classList.remove("active");
+                }
+                else {
+                    fsiBtn.classList.add("active");
+                    transControl = 0;
+                    transBtn.classList.remove("active");
+                    stateControl = 0;
+                    updateStateControl();
+                }
+            }
+            function updateStateControl() {
+                stateBtn.classList.remove(
+                    "state-0",
+                    "state-1",
+                    "state-2",
+                    "state-3",
+                    "state-4",
+                    "state-5"
                 );
+                stateBtn.classList.add(`state-${stateControl}`);
+                if (stateControl === 0) {
+                    stateBtn.textContent = "⊘";
+                }
+                else {
+                    stateBtn.innerHTML = `<img id="stateBtnImg" src="${promote_imgs[stateControl-1]}">`;
+                }
             }
-            function loadSaveCode(code) {
-                try {
-                    const binary = atob(code);
-                    const icons = document.querySelectorAll(".icon");
-                    icons.forEach(icon => {
-                        applyState(icon, -2);
-                    });
-                    const iconMap = {};
-                    icons.forEach(icon => {
-                        iconMap[icon.dataset.base] = icon;
-                    });
-                    for (let i = 0; i < binary.length; i += 2) {
-                        const index =
-                            binary.charCodeAt(i);
-                        const state =
-                            binary.charCodeAt(i + 1);
-                        const base = SAVE_KEYS[index];
-                        if (!base) continue;
-                        const icon = iconMap[base];
-                        if (!icon) continue;
-                        applyState(
-                            icon,
-                            state - 2
-                        );
+            function getCharacterName(key) {
+                return key.replace(/-\d+$/, "");
+            }
+            function hasState4(character) {
+                return imgs.hasOwnProperty(`${character}-2`);
+            }
+            function getMaxState(character) {
+                if (character === "arsad" || character === "gian") {
+                    return 1;
+                }
+                if (hasState4(character)) {
+                    return 4;
+                }
+                return 3;
+            }
+            function getMaxLevel(state) {
+                switch (state) {
+                    case 2: return 25;
+                    case 3: return 15;
+                    case 4: return 10;
+                    default: return 0;
+                }
+            }
+            function isAlternateVersion(character) {
+                if (alternateCharacters.includes(character)) {
+                    return true;
+                }
+                if (character.endsWith("t") || character.endsWith("s")) {
+                    const base = character.slice(0, -1);
+                    if (imgs.hasOwnProperty(`${base}-0`)) {
+                        return true;
                     }
-                    const activeIcons =
-                        document.querySelectorAll(".icon.active").length;
-                    summaryHex?.update(activeIcons, totalIcons);
-                } catch (err) {
-                    console.error("Invalid save code", err);
                 }
+                return false;
             }
-            function updateIconImage(img) {
-                const count = parseInt(img.dataset.count);
-                const base = img.dataset.base;
-                img.src = count >= 0
-                    ? imgs[`${base}-1`]
-                    : imgs[`${base}-0`];
+            const alternateCharacters = [
+                "eresis",
+                "seighartt",
+                "bestgirl0",
+                "oldmant",
+                "agnesia",
+                "uno"
+            ];
+            const container = document.getElementById("iconContainer");
+            const filtered = Object.entries(imgs)
+                .filter(([key]) => key.endsWith("-0"));
+            for (let i = 0; i < filtered.length; i += 12) {
+                const row = document.createElement("div");
+                row.className = "hex-row";
+                if ((i / 12) % 2 === 1) {
+                    row.classList.add("offset");
+                }
+                filtered.slice(i, i + 12).forEach(([key, src]) => {
+                    const hex = document.createElement("div");
+                    hex.className = "hex";
+                    hex.draggable = false;
+                    const character = getCharacterName(key);
+                    hex.dataset.character = character;
+                    hex.dataset.state = 0;
+                    hex.dataset.level = 0;
+                    hex.dataset.tlevel = 0;
+                    const img = document.createElement("img");
+                    img.src = src;
+                    img.alt = key;
+                    img.draggable = false;
+                    hex.appendChild(img);
+                    hex.addEventListener("click", handleHexClick);
+                    updateHex(hex);
+                    row.appendChild(hex);
+                });
+                container.appendChild(row);
             }
-            function applyState(icon, value) {
-                icon.dataset.count = value;
-                const counter =
-                    icon.parentElement.querySelector(".counter");
-                if (value >= 0) {
-                    counter.style.display = "block";
-                    counter.textContent = value === 10 ? "X" : value;
-                    icon.classList.add("active");
+            createSummaryHex();
+            loadLocal();
+            const navBar = document.getElementById("navBar");
+            const toggleSidebar = document.getElementById("toggleSidebar");
+            toggleSidebar.addEventListener("click", () => {
+                navBar.classList.toggle("collapsed");
+                if (navBar.classList.contains("collapsed")) {
+                    toggleSidebar.textContent = "<";
+                    stateControl = 0;
+                    stateBtn.textContent = "⊘";
+                    stateBtn.classList.remove(
+                        "state-0",
+                        "state-1",
+                        "state-2",
+                        "state-3",
+                        "state-4",
+                        "state-5"
+                    );
                 } else {
-                    counter.style.display = "none";
-                    icon.classList.toggle("active", value === -1);
+                    toggleSidebar.textContent = ">";
                 }
-                updateIconImage(icon);
+            });
+            function createSummaryHex() {
+                const row = document.createElement("div");
+                row.className = "hex-row";
+                const hex = document.createElement("div");
+                hex.className = "hex summary-hex state-0";
+                hex.innerHTML = `
+                    <div class="summary-text">
+                        <div id="ownedCount">0 / 0</div>
+                        <div id="ownedPercent">0%</div>
+                    </div>
+                `;
+                row.appendChild(hex);
+                container.appendChild(row);
+                updateSummary();
             }
-            function buildHoneycomb() {
-                const container = document.getElementById("iconContainer");
-                container.innerHTML = "";
-                const hexWidth = 128;
-                const gap_right = 5;
-                const MIN_PER_ROW = 12;
-                const oddCount = MIN_PER_ROW;
-                const evenCount = MIN_PER_ROW;
-                const keys = Object.keys(imgs).filter(k => k.endsWith("-0"));
-                totalIcons = keys.length;
-                let activeIcons = 0;
-                let index = 0;
-                let rowNumber = 0;
-                while (index < keys.length) {
-                    const row = document.createElement("div");
-                    row.className =
-                        "row " +
-                        (rowNumber % 2 ? "even" : "odd");
-                    const count =
-                        rowNumber % 2
-                            ? evenCount
-                            : oddCount;
-                    for (
-                        let i = 0;
-                        i < count && index < keys.length;
-                        i++, index++
-                    ) {
-                        const hex =
-                            document.createElement("div");
-                        hex.className = "hex";
-                        hex.style.marginRight = gap_right + "px";
-                        hex.style.width = hexWidth + "px";
-                        hex.style.height =
-                            Math.round(hexWidth * 1.15) + "px";
-                        const img =
-                            document.createElement("img");
-                        img.src = imgs[keys[index]];
-                        img.className = "icon";
-                        img.draggable = false;
-                        img.dataset.count = -2;
-                        const base = keys[index].replace(/-0$/, "");
-                        img.dataset.base = base;
-                        img.dataset.des = imgs[`${base}-1`] ? "true" : "false";
-                        const counter = document.createElement("div");
-                        counter.className = "counter";
-                        counter.style.display = "none";
-                        counter.textContent = "";
-                        img.addEventListener("dragstart", (e) => {
-                            e.preventDefault();
-                        });
-                        img.addEventListener("click", function () {
-                            let count = parseInt(this.dataset.count);
-                            if (count === -2) {
-                                count = -1;
-                                this.dataset.count = count;
-                                updateIconImage(this);
-                                this.classList.add("active");
-                                activeIcons = document.querySelectorAll(".icon.active").length
-                                summaryHex?.update(activeIcons, totalIcons);
-                                saveToLocal()
-                                return;
-                            } else if (count == -1){
-                                if(img.dataset.des == "false"){
-                                    count = -2;
-                                    this.dataset.count = count;
-                                    this.classList.remove("active");
-                                    activeIcons = document.querySelectorAll(".icon.active").length
-                                    summaryHex?.update(activeIcons, totalIcons);
-                                } else {
-                                    count = 0;
-                                    this.dataset.count = count;
-                                    counter.style.display = "block";
-                                    updateIconImage(this);
-                                    counter.textContent = count;
-                                }
-                                saveToLocal()
-                                return;
+            function handleHexClick(e) {
+                const hex = e.currentTarget;
+                let state = Number(hex.dataset.state);
+                let level = Number(hex.dataset.level);
+                let tlevel = Number(hex.dataset.tlevel);
+                const character = hex.dataset.character;
+                if (fsiControl === 1) {
+                    if (character === "arsad" || character === "gian") {
+                        return 1;
+                    }
+                    else {
+                        state = 3;
+                        level = 15;
+                        hex.dataset.state = state;
+                        hex.dataset.level = level;
+                        hex.dataset.tlevel = 0;
+                        updateHex(hex);
+                        updateSummary();
+                        saveLocal();
+                        return;
+                    }
+                }
+                if (stateControl > 0) {
+                    switch (stateControl) {
+                        case 1:
+                            if (!isAlternateVersion(character)) {
+                                state = 1;
+                                level = 0;
+                                tlevel = 0;
                             }
-                            count++;
-                            if (count >= 11) {
-                                this.dataset.count = -2;
-                                counter.textContent = "";
-                                updateIconImage(this);
-                                counter.style.display = "none";
-                                this.classList.remove("active");
-                            } else if (count == 10) {
-                                this.dataset.count = 10;
-                                counter.textContent = "X";
-                                this.classList.add("active");
-                            } else if (count == -1){
-                                this.dataset.count = -1;
-                                this.classList.remove("active");
+                            stateControl = 0;
+                            updateStateControl();
+                            break;
+                        case 2:
+                            state = 2;
+                            if (isAlternateVersion(character)) {
+                                level = 20;
+                                tlevel = 0;
                             }
                             else {
-                                this.dataset.count = count;
-                                counter.textContent = count;
-                                this.classList.add("active");
+                                level = 0;
+                                tlevel = 0;
                             }
-                            activeIcons = document.querySelectorAll(".icon.active").length
-                            summaryHex?.update(activeIcons, totalIcons);
-                            saveToLocal()
-                        });
-                        hex.appendChild(img);
-                        row.appendChild(hex);
-                        hex.appendChild(counter);
+                            stateControl = 0;
+                            updateStateControl();
+                            break;
+                        case 3:
+                            state = 3;
+                            level = 0;
+                            tlevel = 0;
+                            stateControl = 0;
+                            updateStateControl();
+                            break;
+                        case 4:
+                            if (imgs[`${character}-2`]) {
+                                state = 4;
+                                level = 0;
+                            }
+                            stateControl = 0;
+                            updateStateControl();
+                            break;
                     }
-                    container.appendChild(row);
-                    rowNumber++;
+                    hex.dataset.state = state;
+                    hex.dataset.level = level;
+                    hex.dataset.tlevel = tlevel;
+                    updateHex(hex);
+                    updateSummary();
+                    saveLocal();
+                    return;
                 }
-                function createSummaryHex(active, total) {
-                    const hex = document.createElement("div");
-                    hex.className = "hex summary";
-                    hex.style.width = hexWidth + "px";
-                    hex.style.height = Math.round(hexWidth * 1.15) + "px";
-                    hex.style.marginRight = gap_right + "px";
-                    hex.style.display = "flex";
-                    hex.style.alignItems = "center";
-                    hex.style.justifyContent = "center";
-                    hex.style.textAlign = "center";
-                    hex.style.padding = "10px";
-                    hex.style.boxSizing = "border-box";
-                    hex.style.opacity = "1";
-                    hex.dataset.active = active;
-                    hex.dataset.total = total;
-                    hex.update = function (a, t) {
-                        const percent = t === 0 ? 0 : Math.round((a / t) * 100);
-                        hex.innerHTML = `
-                            <div style="font-size:24px; line-height:1.3;">
-                                <div><b>${a}</b> / ${t}</div>
-                                <div>${percent}%</div>
-                            </div>
-                        `;
-                    };
-                    hex.update(active, total);
-                    return hex;
+                const maxState = getMaxState(character);
+                const maxLevel = getMaxLevel(state);
+                if (transControl === 1) {
+                    let tlevel = Number(hex.dataset.tlevel) || 0;
+                    tlevel++;
+                    if (tlevel > 6) {
+                        tlevel = 0;
+                    }
+                    hex.dataset.tlevel = tlevel;
                 }
-                activeIcons = activeIcons = document.querySelectorAll(".icon.active").length;
-                summaryHex = createSummaryHex(activeIcons, totalIcons);
-                // Put it into a new row OR append to last row
-                let lastRow = container.lastElementChild;
-                // Check if it fits in last row
-                if (lastRow && lastRow.children.length < oddCount) {
-                    lastRow.appendChild(summaryHex);
+                else if ((state === 0 || state === 1) && isAlternateVersion(character)) {
+                    state = 2;
+                    level = 20;
+                }
+                else {
+                    const maxLevel = getMaxLevel(state);
+                    if (level < maxLevel) {
+                        level++;
+                    }
+                    else {
+                        state++;
+                        if (isAlternateVersion(character) && state === 1) {
+                            state = 2;
+                            level = 20;
+                        }
+                        else if (state > maxState) {
+                            state = 0;
+                            level = 0;
+                        }
+                        else {
+                            level = 0;
+                        }
+                    }
+                }
+                if (!(
+                    (state === 3 && level >= 10) ||
+                    state === 4
+                )) {
+                    hex.dataset.tlevel = 0;
+                }
+                hex.dataset.state = state;
+                hex.dataset.level = level;
+                if (!hex.dataset.tlevel) {
+                    hex.dataset.tlevel = 0;
+                }
+                console.log(hex.dataset.state)
+                console.log(hex.dataset.level)
+                updateHex(hex);
+                updateSummary();
+                saveLocal();
+            }
+            function updateSummary() {
+                const hexes = document.querySelectorAll(".hex[data-character]");
+                const total = hexes.length;
+                let owned = 0;
+                hexes.forEach(hex => {
+                    const state = Number(hex.dataset.state);
+                    if (state >= 1) {
+                        owned++;
+                    }
+                });
+                const percent = total > 0
+                    ? ((owned / total) * 100).toFixed(1)
+                    : 0;
+                document.getElementById("ownedCount").textContent =
+                    `${owned} / ${total}`;
+                document.getElementById("ownedPercent").textContent =
+                    `${percent}%`;
+            }
+            function updateHex(hex) {
+                const state = Number(hex.dataset.state);
+                const level = Number(hex.dataset.level);
+                const character = hex.dataset.character;
+                const img = hex.querySelector("img");
+                if (state >= 4 && imgs[`${character}-2`]) {
+                    img.src = imgs[`${character}-2`];
+                }
+                else if (state >= 3 && imgs[`${character}-1`]) {
+                    img.src = imgs[`${character}-1`];
+                }
+                else {
+                    img.src = imgs[`${character}-0`];
+                }
+                hex.classList.toggle("active", state > 0);
+                hex.classList.remove(
+                    "state-0",
+                    "state-1",
+                    "state-2",
+                    "state-3",
+                    "state-4"
+                );
+                hex.classList.add(`state-${state}`);
+                let badge = hex.querySelector(".level");
+                if (!badge) {
+                    badge = document.createElement("div");
+                    badge.className = "level";
+                    hex.appendChild(badge);
+                }
+                let tbadge = hex.querySelector(".translevel");
+                if (!tbadge) {
+                    tbadge = document.createElement("div");
+                    tbadge.className = "translevel";
+                    hex.appendChild(tbadge);
+                }
+                if (state > 1) {
+                    badge.textContent = level;
+                    badge.style.display = "flex";
                 } else {
-                    const row = document.createElement("div");
-                    row.className = "row odd";
-                    row.appendChild(summaryHex);
-                    container.appendChild(row);
+                    badge.style.display = "none";
                 }
-                function createCaptureHex() {
-                    const hex = document.createElement("div");
-                    hex.className = "hex capture-hex";
-                    hex.classList.add("control-hex");
-                    hex.style.width = hexWidth + "px";
-                    hex.style.height = Math.round(hexWidth * 1.15) + "px";
-                    hex.style.marginRight = gap_right + "px";
-                    hex.style.display = "flex";
-                    hex.style.alignItems = "center";
-                    hex.style.justifyContent = "center";
-                    hex.style.background = "#222";
-                    hex.style.cursor = "pointer";
-                    hex.style.opacity = "1";
-                    hex.style.userSelect = "none";
-                    hex.innerHTML = `
-                        <div style="font-size:12px; text-align:center;">
-                            📸<br>Capture
-                        </div>
-                    `;
-                    hex.addEventListener("click", async () => {
-                        const container = document.getElementById("iconContainer");
-                        const controls = document.querySelectorAll(".control-hex");
-                        try {
-                            // hide capture button
-                            console.log(controls)
-                            controls.forEach(el => el.style.visibility = "hidden");
-                            const dataUrl = await domtoimage.toPng(container, {
-                                bgcolor: '#111111'
-                            });
-                            const link = document.createElement("a");
-                            link.download = "grand_chase_flex_chart.png";
-                            link.href = dataUrl;
-                            link.click();
-                        } catch (err) {
-                            console.error("Capture failed:", err);
-
-                        } finally {
-                            controls.forEach(el => el.style.visibility = "visible");
-                        }
-                    });
-                    return hex;
+                const tlevel = Number(hex.dataset.tlevel) || 0;
+                if (tlevel > 0) {
+                    tbadge.textContent = tlevel;
+                    tbadge.style.display = "flex";
+                } else {
+                    tbadge.textContent = "";
+                    tbadge.style.display = "none";
                 }
-                function createSaveHex() {
-                    const hex = document.createElement("div");
-                    hex.className = "hex save-hex";
-                    hex.classList.add("control-hex");
-                    hex.style.width = hexWidth + "px";
-                    hex.style.height = Math.round(hexWidth * 1.15) + "px";
-                    hex.style.marginRight = gap_right + "px";
-                    hex.style.display = "flex";
-                    hex.style.alignItems = "center";
-                    hex.style.justifyContent = "center";
-                    hex.style.background = "#222";
-                    hex.style.cursor = "pointer";
-                    hex.style.userSelect = "none";
-                    hex.innerHTML = `
-                        <div style="font-size:12px; text-align:center;">
-                            💾<br>Save
-                        </div>
-                    `;
-                    hex.addEventListener("click", async () => {
-                        try {
-                            const saveCode = generateSaveCode();
-                            await navigator.clipboard.writeText(saveCode);
-                            alert("Save code copied to clipboard!");
-                        } catch (err) {
-                            console.error(err);
-                            alert("Failed to copy save code.");
-                        }
-                    });
-                    return hex;
-                }
-                function createLoadHex() {
-                    const hex = document.createElement("div");
-                    hex.className = "hex load-hex";
-                    hex.classList.add("control-hex");
-                    hex.style.width = hexWidth + "px";
-                    hex.style.height = Math.round(hexWidth * 1.15) + "px";
-                    hex.style.marginRight = gap_right + "px";
-                    hex.style.display = "flex";
-                    hex.style.alignItems = "center";
-                    hex.style.justifyContent = "center";
-                    hex.style.background = "#222";
-                    hex.style.cursor = "pointer";
-                    hex.style.userSelect = "none";
-                    hex.innerHTML = `
-                        <div style="font-size:12px; text-align:center;">
-                            📂<br>Load
-                        </div>
-                    `;
-                    hex.addEventListener("click", () => {
-                        const code = prompt("Paste save code:");
-                        if (!code) return;
-                        loadSaveCode(code);
-                    });
-                    return hex;
-                }
-                function createClearHex() {
-                    const hex = document.createElement("div");
-                    hex.className = "hex clear-hex";
-                    hex.classList.add("control-hex");
-                    hex.style.width = hexWidth + "px";
-                    hex.style.height = Math.round(hexWidth * 1.15) + "px";
-                    hex.style.marginRight = gap_right + "px";
-                    hex.style.display = "flex";
-                    hex.style.alignItems = "center";
-                    hex.style.justifyContent = "center";
-                    hex.style.background = "#222";
-                    hex.style.cursor = "pointer";
-                    hex.style.userSelect = "none";
-                    hex.innerHTML = `
-                        <div style="font-size:12px; text-align:center;">
-                            🧹<br>Clear
-                        </div>
-                    `;
-                    hex.addEventListener("click", () => {
-                        const icons = document.querySelectorAll(".icon");
-                        icons.forEach(icon => {
-                            icon.dataset.count = -2;
-                            icon.classList.remove("active");
-                            updateIconImage(icon);
-                            const counter =
-                                icon.parentElement.querySelector(".counter");
-
-                            counter.style.display = "none";
-                            counter.textContent = "";
-                        });
-                        summaryHex?.update(0, totalIcons);
-                        localStorage.removeItem("iconSave");
-                        saveToLocal();
-                    });
-                    return hex;
-                }
-                function createHelpHex() {
-                    const hex = document.createElement("div");
-                    hex.classList.add("hex", "help-hex", "control-hex");
-
-                    hex.style.width = hexWidth + "px";
-                    hex.style.height = Math.round(hexWidth * 1.15) + "px";
-                    hex.style.marginRight = gap_right + "px";
-                    hex.style.display = "flex";
-                    hex.style.alignItems = "center";
-                    hex.style.justifyContent = "center";
-                    hex.style.background = "#222";
-                    hex.style.cursor = "pointer";
-                    hex.style.userSelect = "none";
-                    hex.innerHTML = `
-                        <div style="font-size:12px; text-align:center;">
-                            ❓<br>Help
-                        </div>
-                    `;
-                    hex.addEventListener("click", () => {
-                        document.getElementById("helpModal").classList.remove("hidden");
-                    });
-                    return hex;
-                }
-                function createAboutHex() {
-                    const hex = document.createElement("div");
-
-                    hex.classList.add("hex", "about-hex", "control-hex");
-
-                    hex.style.width = hexWidth + "px";
-                    hex.style.height = Math.round(hexWidth * 1.15) + "px";
-                    hex.style.marginRight = gap_right + "px";
-                    hex.style.display = "flex";
-                    hex.style.alignItems = "center";
-                    hex.style.justifyContent = "center";
-                    hex.style.background = "#222";
-                    hex.style.cursor = "pointer";
-                    hex.style.userSelect = "none";
-
-                    hex.innerHTML = `
-                        <div style="font-size:12px; text-align:center;">
-                            ℹ️<br>About
-                        </div>
-                    `;
-
-                    hex.addEventListener("click", () => {
-                        document
-                            .getElementById("aboutModal")
-                            .classList.remove("hidden");
-                    });
-
-                    return hex;
-                }
-                const saveHex = createSaveHex();
-                const loadHex = createLoadHex();
-                const captureHex = createCaptureHex();
-                const clearHex = createClearHex();
-                const helpHex = createHelpHex();
-                const aboutHex = createAboutHex();
-                [saveHex, loadHex, clearHex, helpHex, aboutHex, captureHex].forEach(hex => {
-                    let lastRow = container.lastElementChild;
-                    if (lastRow && lastRow.children.length < oddCount) {
-                        lastRow.appendChild(hex);
-                    } else {
-                        const row = document.createElement("div");
-                        row.className = "row odd";
-                        row.appendChild(hex);
-                        container.appendChild(row);
+            }
+            function saveProgress() {
+                const saveData = {};
+                document.querySelectorAll(".hex[data-character]").forEach(hex => {
+                    const s = Number(hex.dataset.state);
+                    const l = Number(hex.dataset.level);
+                    const t = Number(hex.dataset.tlevel || 0);
+                    if (s || l || t) {
+                        saveData[hex.dataset.character] = [s, l, t];
                     }
-                    });
+                });
+                const json = JSON.stringify(saveData);
+                const code = btoa(unescape(encodeURIComponent(JSON.stringify(saveData))));
+                console.log(code);
+                navigator.clipboard.writeText(code);
+                alert("Save code copied to clipboard!")
             }
-            function getIcon(base, state = 0) {
-                return imgs[`${base}-${state}`];
-            }
-            function saveToLocal() {
-                const saveCode = generateSaveCode();
-                localStorage.setItem("iconSave", saveCode);
-                updateURLSave(saveCode);
-            }
-            function loadFromLocal() {
-                const code = localStorage.getItem("iconSave");
+            function loadProgress() {
+                let code = prompt("Enter save code:");
                 if (!code) return;
-                loadSaveCode(code);
-            }
-            function getSaveFromURL() {
-                const params = new URLSearchParams(window.location.search);
-                return params.get("save");
-            }
-            function updateURLSave(code) {
-                const url = new URL(window.location);
-                url.searchParams.set("save", code);
-                window.history.replaceState({}, "", url);
-            }
-            document.getElementById("closeHelp").addEventListener("click", () => {
-                document.getElementById("helpModal").classList.add("hidden");
-            });
-            document.getElementById("helpModal").addEventListener("click", (e) => {
-                if (e.target.id === "helpModal") {
-                    e.target.classList.add("hidden");
-                }
-            });
-            document.getElementById("closeAbout").addEventListener("click", () => {
-                document.getElementById("aboutModal").classList.add("hidden");
-            });
 
-            document.getElementById("aboutModal").addEventListener("click", (e) => {
-                if (e.target.id === "aboutModal") {
-                    e.target.classList.add("hidden");
+                try {
+                    const json = decodeURIComponent(escape(atob(code)));
+                    const saveData = JSON.parse(json);
+
+                    document.querySelectorAll(".hex[data-character]").forEach(hex => {
+                        const data = saveData[hex.dataset.character];
+
+                        if (data) {
+                            hex.dataset.state = data[0];
+                            hex.dataset.level = data[1];
+                            hex.dataset.tlevel = data[2] || 0;
+                        }
+                        else {
+                            hex.dataset.state = 0;
+                            hex.dataset.level = 0;
+                            hex.dataset.tlevel = 0;
+                        }
+
+                        updateHex(hex);
+                    });
+
+                    updateSummary();
+                    saveLocal();
+
+                } catch (e) {
+                    console.error("Load error:", e);
+                    alert("Invalid save code");
                 }
-            });
-            window.addEventListener("load", () => {
-                buildHoneycomb();
-                const urlSave = getSaveFromURL();
-                if (urlSave) {
-                    loadSaveCode(urlSave);
-                } else {
-                    loadFromLocal();
+            }
+            function saveLocal() {
+                const saveData = {};
+                document.querySelectorAll(".hex[data-character]").forEach(hex => {
+                    saveData[hex.dataset.character] = {
+                        state: Number(hex.dataset.state),
+                        level: Number(hex.dataset.level),
+                        tlevel: Number(hex.dataset.tlevel || 0)
+                    };
+                });
+                localStorage.setItem(
+                    "grandChaseFlexChart",
+                    JSON.stringify(saveData)
+                );
+            }
+            function loadLocal() {
+                const data = localStorage.getItem("grandChaseFlexChart");
+                if (!data) {
+                    return;
                 }
-                document.getElementById("helper0").src = imgs["elesis-0"];
-                document.getElementById("helper1").src = imgs["elesis-0"];
-                document.getElementById("helper2").src = imgs["elesis-1"];
-            });
+                try {
+                    const saveData = JSON.parse(data);
+                    document.querySelectorAll(".hex[data-character]").forEach(hex => {
+                        const character = hex.dataset.character;
+                        if (saveData[character]) {
+                            hex.dataset.state = saveData[character].state;
+                            hex.dataset.level = saveData[character].level;
+                            hex.dataset.tlevel = saveData[character].tlevel || 0;
+                            updateHex(hex);
+                        }
+                    });
+                    updateSummary();
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+            function clearProgress() {
+                document.querySelectorAll(".hex").forEach(hex => {
+                    hex.dataset.state = 0;
+                    hex.dataset.level = 0;
+                    hex.dataset.tlevel = 0;
+                    updateHex(hex);
+                    updateSummary();
+                });
+                localStorage.removeItem("grandChaseFlexChart");
+            }
+            async function captureProgress() {
+                const container = document.getElementById("iconContainer");
+                try {
+                    const dataUrl = await domtoimage.toPng(container, {
+                        bgcolor: '#111111'
+                    });
+                    const link = document.createElement("a");
+                    link.download = "grand_chase_flex_chart.png";
+                    link.href = dataUrl;
+                    link.click();
+                } catch (err) {
+                    console.error("Capture failed:", err);
+                }
+            }
         </script>
     </body>
 </html>
