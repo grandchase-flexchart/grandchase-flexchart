@@ -21,18 +21,7 @@
                 <div class="modal-body">
                     <p><b>Grand Chase Flex Chart Help</b></p>
                     <p>Click icons to cycle states:</p>
-                    <img class="helper" id="helper0" style="width:128px;height:128px;"></img> → <b>Not Acquired</b><br>
-                    <img class="helper" id="helper1" style="width:128px;height:128px;opacity:1;"></img> → <b>Acquired</b><br>
-                    <img class="helper" id="helper2" style="width:128px;height:128px;opacity:1;"></img> → <b>Descent</b> (Up to Level 10)<br>
-                    <p><b>Note:</b> Clicking more when the character is in Descent will increase its Descent Level. Level 10 will show X. Clicking the icon when at Level 10 will reset the icon to "Not Acquired"</p>
-                    <p><b>Note:</b> Characters without Descent levels will revert back to "Not Acquired" state when clicked in "Acquired" state</p><br>
-                    <br>
-                    <p>
-                        💾 Save - gives you a save code<br>
-                        📂 Load - use a save code to continue progress<br>
-                        🧹 Clear - resets everything<br>
-                        📸 Capture - exports image of the page<br>
-                    </p>
+                    <div id="helpStates"></div>
                 </div>
             </div>
         </div>
@@ -50,6 +39,16 @@
                     <p>
                         Created by <b>Lily (Aoi Sora/chasw.)</b><br>
                         Find me in <a href="https://discord.gg/grandchase">Grand Chase Dimensional Chasers Discord</a><br>
+                    </p>
+                    <p>
+                        Version: 2.0
+                    </p>
+                    <p>
+                        <ul>
+                            <li>Added Chaser, and Soul Imprint Levels</li>
+                            <li>Added Transcedence Levels</li>
+                            <li>Change Save/Load System once more</li>
+                        </ul>
                     </p>
                     <p>
                         Version: 1.1
@@ -89,10 +88,70 @@
                 <div class="nav-hex" id="clearBtn" onclick="clearProgress()">🧹</div>
             </div>
             <div class="nav-row offset">
+                <div class="nav-hex" id="helpBtn">❓</div>
+            </div>
+            <div class="nav-row">
+                <div class="nav-hex" id="aboutBtn">✔️</div>
+            </div>
+            <div class="nav-row offset">
                 <div class="nav-hex" id="captureBtn" onclick="captureProgress()">📷</div>
             </div>
         </div>
         <script>
+            const elesis0Img = imgs["elesis-0"];
+            const elesis1Img = imgs["elesis-1"];
+            const elesis2Img = imgs["elesis-2"];
+            document.getElementById("helpStates").innerHTML = `
+                <div class="help-row">
+                    <div class="hex helper-hex state-0">
+                        <img src="${elesis0Img}">
+                    </div>
+                    <span>→ <b>Not Acquired</b></span>
+                </div>
+                <div class="help-row">
+                    <div class="hex helper-hex state-1 active">
+                        <img src="${elesis0Img}">
+                    </div>
+                    <span>→ <b>Acquired</b></span>
+                </div>
+                <div class="help-row">
+                    <div class="hex helper-hex state-2 active">
+                        <img src="${elesis0Img}">
+                        <div class="level">15</div>
+                    </div>
+                    <span>→ <b>Chaser Opened</b>: Level 15 (Up to Level 25)</span>
+                </div>
+                <div class="help-row">
+                    <div class="hex helper-hex state-3 active">
+                        <img src="${elesis1Img}">
+                        <div class="level">10</div>
+                    </div>
+                    <span>→ <b>Soul Imprint Opened</b>: Level 10 (Up to Level 15)</span><br>
+                </div>
+                <div class="help-row">
+                    <span><b>Note</b>: Soul Imprint can be access after Chaser Level 25</span>
+                </div>
+                <div class="help-row">
+                    <div class="hex helper-hex state-4 active">
+                        <img src="${elesis2Img}">
+                        <div class="level">5</div>
+                    </div>
+                    <span>→ <b>Descent</b> (Up to Level 10)</span>
+                </div>
+                <div class="help-row">
+                    <span><b>Note</b>: Descent can be access after Soul Imprint Level 15</span>
+                </div>
+                <div class="help-row">
+                    <div class="hex helper-hex state-3 active">
+                        <img src="${elesis1Img}">
+                        <div class="tlevel">5</div>
+                    </div>
+                    <span>→ <b>Transcendence</b>: Level 5 (Up to Level 6)</span>
+                </div>
+                <div class="help-row">
+                    <span><b>Note</b>: Transcendence can be access after Soul Imprint Level 10</span>
+                </div>
+            `;
             let stateControl = 0;
             let transControl = 0;
             let fsiControl = 0;
@@ -241,16 +300,6 @@
                 navBar.classList.toggle("collapsed");
                 if (navBar.classList.contains("collapsed")) {
                     toggleSidebar.textContent = "<";
-                    stateControl = 0;
-                    stateBtn.textContent = "⊘";
-                    stateBtn.classList.remove(
-                        "state-0",
-                        "state-1",
-                        "state-2",
-                        "state-3",
-                        "state-4",
-                        "state-5"
-                    );
                 } else {
                     toggleSidebar.textContent = ">";
                 }
@@ -567,6 +616,39 @@
                     console.error("Capture failed:", err);
                 }
             }
+            const helpBtn = document.getElementById("helpBtn");
+            const helpModal = document.getElementById("helpModal");
+            const closeHelp = document.getElementById("closeHelp");
+
+            helpBtn.addEventListener("click", () => {
+                helpModal.classList.remove("hidden");
+            });
+
+            closeHelp.addEventListener("click", () => {
+                helpModal.classList.add("hidden");
+            });
+
+            // About Modal
+            const aboutBtn = document.getElementById("aboutBtn");
+            const aboutModal = document.getElementById("aboutModal");
+            const closeAbout = document.getElementById("closeAbout");
+
+            aboutBtn.addEventListener("click", () => {
+                aboutModal.classList.remove("hidden");
+            });
+
+            closeAbout.addEventListener("click", () => {
+                aboutModal.classList.add("hidden");
+            });
+            window.addEventListener("click", (e) => {
+                if (e.target === helpModal) {
+                    helpModal.classList.add("hidden");
+                }
+
+                if (e.target === aboutModal) {
+                    aboutModal.classList.add("hidden");
+                }
+            });
         </script>
     </body>
 </html>
